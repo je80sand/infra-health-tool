@@ -1,0 +1,8 @@
+2026-02-02 09:01:01 INFO Starting service check...
+2026-02-02 09:01:02 WARNING Disk latency higher than normal
+2026-02-02 09:01:03 INFO Retry attempt 1
+2026-02-02 09:01:04 ERROR Connection to backend FAILED
+2026-02-02 09:01:05 TIMEOUT Waiting for response from host
+2026-02-02 09:01:06 EXCEPTION Traceback: ValueError in request handler
+2026-02-02 09:01:07 WARN Memory pressure detected
+2026-02-02 09:01:08 INFO Health check finished

@@ -1,0 +1,71 @@
+{
+  "system_metrics": {
+    "timestamp": "2026-02-02T09:32:48",
+    "system": {
+      "operating_system": "Darwin",
+      "os_version": "21.6.0",
+      "machine_type": "x86_64",
+      "processor": "i386"
+    },
+    "cpu": {
+      "usage_percent": 9.0
+    },
+    "memory": {
+      "total_bytes": 8589934592,
+      "available_bytes": 4234383360,
+      "usage_percent": 50.7
+    },
+    "disk": {
+      "total_bytes": 500068036608,
+      "used_bytes": 16043724800,
+      "free_bytes": 466370637824,
+      "usage_percent": 3.3
+    }
+  },
+  "log_analysis": {
+    "files_scanned": 1,
+    "problem_counts": {
+      "ERROR": 2,
+      "WARNING": 1,
+      "WARN": 2,
+      "FAILED": 1,
+      "TIMEOUT": 1,
+      "EXCEPTION": 1
+    },
+    "example_problem_lines": [
+      {
+        "file": "sample.log",
+        "line": "2026-02-02 09:01:02 WARNING Disk latency higher than normal"
+      },
+      {
+        "file": "sample.log",
+        "line": "2026-02-02 09:01:02 WARNING Disk latency higher than normal"
+      },
+      {
+        "file": "sample.log",
+        "line": "2026-02-02 09:01:04 ERROR Connection to backend FAILED"
+      },
+      {
+        "file": "sample.log",
+        "line": "2026-02-02 09:01:04 ERROR Connection to backend FAILED"
+      },
+      {
+        "file": "sample.log",
+        "line": "2026-02-02 09:01:05 TIMEOUT Waiting for response from host"
+      },
+      {
+        "file": "sample.log",
+        "line": "2026-02-02 09:01:06 EXCEPTION Traceback: ValueError in request handler"
+      },
+      {
+        "file": "sample.log",
+        "line": "2026-02-02 09:01:06 EXCEPTION Traceback: ValueError in request handler"
+      },
+      {
+        "file": "sample.log",
+        "line": "2026-02-02 09:01:07 WARN Memory pressure detected"
+      }
+    ],
+    "errors": []
+  }
+}

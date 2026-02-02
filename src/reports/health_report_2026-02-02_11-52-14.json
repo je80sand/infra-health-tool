@@ -1,0 +1,44 @@
+{
+  "system_metrics": {
+    "timestamp": "2026-02-02T11:52:14",
+    "system": {
+      "os": "Darwin",
+      "os_version": "Darwin Kernel Version 21.6.0: Mon Jun 24 00:56:10 PDT 2024; root:xnu-8020.240.18.709.2~1/RELEASE_X86_64",
+      "machine": "x86_64",
+      "processor": "i386",
+      "hostname": "joses-MacBook-Pro.local"
+    },
+    "cpu": {
+      "usage_percent": 2.0,
+      "cores_logical": 4
+    },
+    "memory": {
+      "usage_percent": 56.7,
+      "total_gb": 8.0
+    },
+    "disk": {
+      "usage_percent": 3.3,
+      "total_gb": 465.72
+    }
+  },
+  "log_analysis": {
+    "logs_dir": "logs",
+    "files_scanned": 0,
+    "problem_counts": {
+      "ERROR": 0,
+      "WARNING": 0,
+      "WARN": 0,
+      "FAILED": 0,
+      "TIMEOUT": 0,
+      "EXCEPTION": 0
+    },
+    "examples": {
+      "ERROR": [],
+      "WARNING": [],
+      "WARN": [],
+      "FAILED": [],
+      "TIMEOUT": [],
+      "EXCEPTION": []
+    }
+  }
+}
