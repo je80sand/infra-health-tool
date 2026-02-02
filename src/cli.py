@@ -1,161 +1,162 @@
 """
 cli.py
 
-Entry point for the Infra Health Tool.
+Entry point for the Infrastructure Health Tool.
 
-Features included:
-- CLI flags (json-only, summary-only, no-save)
-- Markdown export (--export-md)
-- Simulation mode (--simulate ok|warn|critical)
-- Threshold controls (--cpu-warn, etc.)
+Runs:
+- System metrics collection (CPU, memory, disk, OS info)
+- Log parsing (keyword matches)
+- JSON report generation (saved to reports/)
+
+Usage examples:
+  python3 cli.py
+  python3 cli.py --json-only
+  python3 cli.py --cpu-warn 70 --mem-warn 75 --disk-warn 85
+  python3 cli.py --logs-dir ../logs --output-dir reports
 """
 
+from __future__ import annotations
+
 import argparse
+import sys
+from pathlib import Path
 
 from monitor import collect_system_metrics
 from log_parser import analyze_logs
-from reporter import save_json_report, save_markdown_report
+from reporter import generate_report
 
 
-def evaluate_usage(value, warn_threshold, critical_threshold):
-    """
-    Convert a numeric percentage into a human label: OK / WARN / CRITICAL
-    """
-    if value >= critical_threshold:
-        return "CRITICAL"
-    if value >= warn_threshold:
-        return "WARN"
-    return "OK"
-
-
-def apply_simulation(system_metrics, mode):
-    """
-    Override real metrics with demo values.
-    This keeps the rest of the program identical (clean design).
-    """
-    if mode == "ok":
-        system_metrics["cpu"]["usage_percent"] = 10.0
-        system_metrics["memory"]["usage_percent"] = 45.0
-        system_metrics["disk"]["usage_percent"] = 30.0
-
-    elif mode == "warn":
-        system_metrics["cpu"]["usage_percent"] = 75.0
-        system_metrics["memory"]["usage_percent"] = 78.0
-        system_metrics["disk"]["usage_percent"] = 85.0
-
-    elif mode == "critical":
-        system_metrics["cpu"]["usage_percent"] = 95.0
-        system_metrics["memory"]["usage_percent"] = 94.0
-        system_metrics["disk"]["usage_percent"] = 98.0
-
-    return system_metrics
-
-
-def build_parser():
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Infra Health Tool - collect system metrics + scan logs + output report."
+        prog="infra-health-tool",
+        description="A simple CLI tool that checks basic system health and scans logs for issues.",
     )
 
-    # --- OUTPUT OPTIONS ---
-    parser.add_argument("--summary-only", action="store_true",
-                        help="Print the summary and exit (still saves unless --no-save).")
+    # Output behavior
+    parser.add_argument(
+        "--json-only",
+        action="store_true",
+        help="Only generate the JSON report (do not print the summary).",
+    )
 
-    parser.add_argument("--json-only", action="store_true",
-                        help="Do not print the summary (only save report and print paths).")
+    # Thresholds (ints: percent 0..100)
+    parser.add_argument(
+        "--cpu-warn",
+        type=int,
+        default=80,
+        help="CPU warning threshold (percent). Default: 80",
+    )
+    parser.add_argument(
+        "--mem-warn",
+        type=int,
+        default=80,
+        help="Memory warning threshold (percent). Default: 80",
+    )
+    parser.add_argument(
+        "--disk-warn",
+        type=int,
+        default=90,
+        help="Disk warning threshold (percent). Default: 90",
+    )
 
-    parser.add_argument("--export-md", action="store_true",
-                        help="Also export a Markdown report into the reports/ folder.")
-
-    parser.add_argument("--no-save", action="store_true",
-                        help="Do not save a report file (quick check).")
-
-    # --- THRESHOLDS ---
-    parser.add_argument("--cpu-warn", type=float, default=70, help="CPU WARN threshold percent.")
-    parser.add_argument("--cpu-critical", type=float, default=90, help="CPU CRITICAL threshold percent.")
-
-    parser.add_argument("--mem-warn", type=float, default=70, help="Memory WARN threshold percent.")
-    parser.add_argument("--mem-critical", type=float, default=90, help="Memory CRITICAL threshold percent.")
-
-    parser.add_argument("--disk-warn", type=float, default=80, help="Disk WARN threshold percent.")
-    parser.add_argument("--disk-critical", type=float, default=95, help="Disk CRITICAL threshold percent.")
-
-    # --- LOGS ---
-    parser.add_argument("--logs-dir", default="logs", help="Folder to scan for logs (default: logs).")
-
-    # --- SIMULATION ---
-    parser.add_argument("--simulate", choices=["ok", "warn", "critical"],
-                        help="Simulate system metrics for demo purposes.")
+    # Paths
+    parser.add_argument(
+        "--logs-dir",
+        type=str,
+        default=str(Path("..") / "logs"),
+        help="Directory containing log files to scan. Default: ../logs",
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        default=str(Path("reports")),
+        help="Directory to save generated reports. Default: reports",
+    )
 
     return parser
 
 
-def main():
+def clamp_percent(name: str, value: int) -> int:
+    if not (0 <= value <= 100):
+        raise ValueError(f"{name} must be between 0 and 100. You gave: {value}")
+    return value
+
+
+def status_from_threshold(value: float, warn_threshold: int) -> str:
+    return "WARN" if value >= warn_threshold else "OK"
+
+
+def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
 
-    # 1) Collect real metrics
+    # Validate thresholds
+    try:
+        cpu_warn = clamp_percent("cpu-warn", args.cpu_warn)
+        mem_warn = clamp_percent("mem-warn", args.mem_warn)
+        disk_warn = clamp_percent("disk-warn", args.disk_warn)
+    except ValueError as e:
+        print(f"ERROR: {e}")
+        return 2
+
+    logs_dir = Path(args.logs_dir).expanduser()
+    output_dir = Path(args.output_dir).expanduser()
+
+    print("Starting infrastructure health check...")
+
+    # 1) Collect metrics
     system_metrics = collect_system_metrics()
 
-    # 2) Optional simulation override
-    if args.simulate:
-        system_metrics = apply_simulation(system_metrics, args.simulate)
+    cpu_percent = float(system_metrics["cpu"]["usage_percent"])
+    mem_percent = float(system_metrics["memory"]["usage_percent"])
+    disk_percent = float(system_metrics["disk"]["usage_percent"])
 
-    # 3) Analyze logs
-    log_analysis = analyze_logs(logs_dir=args.logs_dir)
+    # 2) Analyze logs
+    log_analysis = analyze_logs(logs_dir)
 
-    # 4) Build full report
-    full_report = {
-        "system_metrics": system_metrics,
-        "log_analysis": log_analysis,
+    # Compute total matches safely (supports dict like {"ERROR": 3, "WARN": 2, ...})
+    problem_counts = log_analysis.get("problem_counts", {})
+    if isinstance(problem_counts, dict):
+        total_problems_found = sum(int(v) for v in problem_counts.values())
+    else:
+        total_problems_found = 0
+
+    # 3) Build thresholds + evaluations (these go into the JSON report)
+    thresholds = {
+        "cpu_warn_percent": cpu_warn,
+        "memory_warn_percent": mem_warn,
+        "disk_warn_percent": disk_warn,
     }
 
-    # 5) Pull values we need for summary
-    cpu_percent = system_metrics["cpu"]["usage_percent"]
-    memory_percent = system_metrics["memory"]["usage_percent"]
-    disk_percent = system_metrics["disk"]["usage_percent"]
+    evaluations = {
+        "cpu_status": status_from_threshold(cpu_percent, cpu_warn),
+        "memory_status": status_from_threshold(mem_percent, mem_warn),
+        "disk_status": status_from_threshold(disk_percent, disk_warn),
+        "total_log_matches": total_problems_found,
+    }
 
-    # 6) Calculate log totals BEFORE printing (fixes your error)
-    problem_counts = log_analysis["problem_counts"]
-    total_problems_found = sum(problem_counts.values())
+    # 4) Generate report (JSON file)
+    report_path = generate_report(
+        system_metrics=system_metrics,
+        log_analysis=log_analysis,
+        output_dir=output_dir,
+        thresholds=thresholds,
+        evaluations=evaluations,
+    )
 
-    # 7) Evaluate health status using CLI thresholds
-    cpu_status = evaluate_usage(cpu_percent, args.cpu_warn, args.cpu_critical)
-    memory_status = evaluate_usage(memory_percent, args.mem_warn, args.mem_critical)
-    disk_status = evaluate_usage(disk_percent, args.disk_warn, args.disk_critical)
-
-    # 8) Print summary (unless json-only)
+    # 5) Print summary unless json-only
     if not args.json_only:
-        print("\n--- Infrastructure Health Summary ---")
-        print(f"CPU Usage: {cpu_percent}% [{cpu_status}]")
-        print(f"Memory Usage: {memory_percent}% [{memory_status}]")
-        print(f"Disk Usage: {disk_percent}% [{disk_status}]")
+        print("\n=== Infrastructure Health Summary ===")
+        print(f"CPU Usage: {cpu_percent:.1f}% [{evaluations['cpu_status']}]")
+        print(f"Memory Usage: {mem_percent:.1f}% [{evaluations['memory_status']}]")
+        print(f"Disk Usage: {disk_percent:.1f}% [{evaluations['disk_status']}]")
         print(f"Log Issues: {total_problems_found} total matches")
-        print("------------------------------------\n")
+        print("====================================\n")
 
-    # If user wants summary-only, we still continue to save unless no-save is set.
-    # (You can change this behavior later; this is a good default.)
-
-    # 9) Save JSON + optional Markdown
-    json_path = None
-    md_path = None
-
-    if not args.no_save:
-        json_path = save_json_report(full_report)
-
-        if args.export_md:
-            md_path = save_markdown_report(full_report)
-
-    # 10) Output final info (even for json-only)
     print("Health check complete.")
-
-    if args.no_save:
-        print("No files saved (--no-save).")
-    else:
-        if json_path:
-            print(f"JSON report saved to: {json_path}")
-        if md_path:
-            print(f"Markdown report saved to: {md_path}")
+    print(f"JSON report saved to: {report_path}\n")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

@@ -87,3 +87,32 @@ def save_markdown_report(full_report):
         f.writelines(lines)
 
     return path
+
+from datetime import datetime
+from pathlib import Path
+import json
+
+
+def generate_report(system_metrics, log_analysis, thresholds, evaluations, output_dir="reports"):
+    """
+    Build a full report dictionary, write it to a timestamped JSON file,
+    and return the saved file path as a string.
+    """
+    report = {
+        "timestamp": datetime.now().isoformat(timespec="seconds"),
+        "system_metrics": system_metrics,
+        "log_analysis": log_analysis,
+        "thresholds": thresholds,
+        "evaluations": evaluations,
+    }
+
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    filename = f"health_report_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.json"
+    report_file = output_path / filename
+
+    with report_file.open("w", encoding="utf-8") as f:
+        json.dump(report, f, indent=2, default=str)
+
+    return str(report_file)
