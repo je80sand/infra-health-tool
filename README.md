@@ -7,6 +7,8 @@ A lightweight Python CLI tool that performs system health checks, analyzes logs,
 
 Designed for monitoring, automation, and entry-level DevOps / Python engineering workflows.
 
+This tool is designed to be integrated into CI/CD pipelines to automatically validate infrastructure health on every push or deployment.
+
 ---
 
 ## 🚀 Features
