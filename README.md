@@ -1,85 +1,113 @@
-🖥️ Infrastructure Health Tool
+# Infrastructure Health Tool
+
 A lightweight Python CLI tool that performs system health checks, analyzes logs, and generates structured JSON reports.
+
 Designed for monitoring, automation, and entry-level DevOps / Python engineering workflows.
-🚀 Features
-✅ CPU, memory, and disk usage collection
-🔍 Log file analysis (keyword matching)
-📄 JSON health report generation
-⚠️ Configurable warning thresholds
-🤖 Machine-friendly exit codes (CI/CD ready)
-🧪 Safe handling of missing or partial data
-📦 Project Structure
-Copy code
+
+---
+
+## 🚀 Features
+
+- CPU, memory, and disk usage collection
+- Log file analysis (keyword matching)
+- JSON health report generation
+- Configurable warning thresholds
+- Machine-friendly exit codes (CI/CD ready)
+- Safe handling of missing or partial data
+
+---
+
+## 📁 Project Structure
 
 infra-health-tool/
+├── .github/
+│ └── workflows/
+│ └── ci.yml
+├── logs/
+│ └── sample.log
+├── reports/
 ├── src/
-│ ├── cli.py # CLI entry point
-│ ├── monitor.py # System metrics collection
-│ ├── log_parser.py # Log analysis
-│ ├── reporter.py # JSON report generation
+│ ├── cli.py
+│ ├── monitor.py
+│ ├── log_parser.py
+│ ├── reporter.py
 │ └── __init__.py
-├── reports/ # Generated health reports
-├── logs/ # Optional log input directory
+├── .gitignore
 ├── requirements.txt
 └── README.md
-🛠️ Installation
-Copy code
-Bash
+
+---
+
+## ⚙️ Installation
+
 pip install -r requirements.txt
-▶️ Usage
-Run full health check
-Copy code
-Bash
+
+---
+
+## ▶️ Usage
+
+Run a full health check:
+
 python3 -m src.cli
-JSON only (no console output)
-Copy code
-Bash
-python3 -m src.cli --json-only
-Custom warning thresholds
-Copy code
-Bash
-python3 -m src.cli \
-  --cpu-warn 70 \
-  --mem-warn 75 \
-  --disk-warn 85
-Analyze logs from a directory
-Copy code
-Bash
-python3 -m src.cli --logs-dir ./logs
-Custom output directory
-Copy code
-Bash
+
+Run with custom warning thresholds:
+
+python3 -m src.cli --cpu-warn 70 --mem-warn 75 --disk-warn 85
+
+Analyze logs from a directory:
+
+python3 -m src.cli --logs-dir logs
+
+Specify output directory:
+
 python3 -m src.cli --output-dir reports
-📊 Sample Output
-Copy code
+
+JSON-only output (no console summary):
+
+python3 -m src.cli --json-only
+
+Quiet mode:
+
+python3 -m src.cli --quiet
+
+---
+
+## 📊 Sample Output
 
 === Infrastructure Health Summary ===
 CPU Usage: 81.8% [WARN]
 Memory Usage: 62.1% [OK]
 Disk Usage: 3.3% [OK]
 Log Issues: 0 total matches
-===================================
+====================================
 
 Health check complete.
 JSON report saved to: reports/health_report_2026-02-02_15-08-26.json
-🔢 Exit Codes
-Code
-Meaning
-0
-All systems OK
-1
-One or more WARN conditions
-2
-Error or missing metric data
-Example:
-Copy code
-Bash
-python3 -m src.cli
-echo $?
-📄 JSON Report
-Reports are saved to the reports/ directory and include:
-Timestamp
-System metadata
-CPU, memory, disk usage
-Log issue counts
-Evaluation status
+
+---
+
+## 🧾 Exit Codes (CI/CD Friendly)
+
+0 = All checks OK  
+1 = One or more warnings  
+2 = Error (missing or invalid data)
+
+---
+
+## 🤖 Continuous Integration
+
+This project includes GitHub Actions CI that runs on every push and pull request, installs dependencies, and executes the CLI.
+
+---
+
+## 🎯 Why This Project Matters
+
+This project demonstrates clean Python CLI design, defensive programming, automation patterns, CI/CD integration, and DevOps-friendly exit codes.
+
+Built as a portfolio project for junior Python, automation, and DevOps roles.
+
+---
+
+## 📜 License
+
+MIT
