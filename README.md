@@ -1,3 +1,6 @@
+![CI](https://github.com/je80sand/infra-health-tool/actions/workflows/ci.yml/badge.svg)
+
+
 # Infrastructure Health Tool
 
 A lightweight Python CLI tool that performs system health checks, analyzes logs, and generates structured JSON reports.
