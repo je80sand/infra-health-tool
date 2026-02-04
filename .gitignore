@@ -6,5 +6,7 @@ __pycache__/
 .venv/
 venv/
 
-# Generated reports
-src/reports/*.json
+# Generated reports (created by running the CLI)
+reports/
+src/reports/
+*.json
