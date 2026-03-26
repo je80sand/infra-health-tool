@@ -1,12 +1,48 @@
-# Infrastructure Health Tool
+# 🚀 Infrastructure Health Tool
 
-![CI](https://img.shields.io/badge/CI-passing-brightgreen)
+![CI](https://github.com/je80sand/infra-health-tool/actions/workflows/ci.yml/badge.svg)
+![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
+![Tests](https://img.shields.io/badge/tests-pytest-green)
+![License](https://img.shields.io/badge/license-MIT-green)
 
 A lightweight Python CLI tool that performs system health checks, analyzes logs, and generates structured JSON reports.
 
-Designed for monitoring, automation, and entry-level DevOps / Python engineering workflows.
+Designed for monitoring, automation, and entry-level DevOps / QA / Python engineering workflows.
 
-This tool is built to integrate cleanly into CI/CD pipelines to automatically validate infrastructure health on every push or deployment.
+Built to integrate seamlessly into CI/CD pipelines to validate infrastructure health on every push or deployment.
+
+---
+
+## 🎥 Demo
+
+Run:
+python3 -m src.cli
+
+Output:
+=== Infrastructure Health Summary ===
+CPU Usage: 81.8% [WARN]
+Memory Usage: 62.1% [OK]
+Disk Usage: 3.3% [OK]
+Log Issues: 0 total matches
+
+Health check complete.
+JSON report saved to:
+reports/health_report_2026-02-02_15-08-26.json
+
+---
+
+## 📸 Example JSON Output
+
+{
+  "cpu_percent": 81.8,
+  "memory_percent": 62.1,
+  "disk_percent": 3.3,
+  "cpu_status": "WARN",
+  "memory_status": "OK",
+  "disk_status": "OK",
+  "log_issues": 0,
+  "timestamp": "2026-02-02T15:08:26"
+}
 
 ---
 
@@ -24,7 +60,6 @@ This tool is built to integrate cleanly into CI/CD pipelines to automatically va
 
 ## 📁 Project Structure
 
-```
 infra-health-tool/
 ├── .github/
 │ └── workflows/
@@ -37,101 +72,82 @@ infra-health-tool/
 │ ├── monitor.py
 │ ├── log_parser.py
 │ ├── reporter.py
+│ ├── ai_analyzer.py
 │ └── __init__.py
+├── tests/
 ├── .gitignore
 ├── requirements.txt
 └── README.md
-```
 
 ---
 
 ## ⚙️ Installation
 
-Install dependencies:
-
-```
 pip install -r requirements.txt
-```
 
 ---
 
 ## ▶️ Usage
 
-Run a full health check:
-
-```
+Run full health check:
 python3 -m src.cli
-```
 
 Run with custom warning thresholds:
-
-```
 python3 -m src.cli --cpu-warn 70 --mem-warn 75 --disk-warn 85
-```
 
 Analyze logs from a directory:
-
-```
 python3 -m src.cli --logs-dir logs
-```
 
 Specify output directory:
-
-```
 python3 -m src.cli --output-dir reports
-```
 
-JSON-only output (no console summary):
-
-```
+JSON-only output:
 python3 -m src.cli --json-only
-```
 
 Quiet mode:
-
-```
 python3 -m src.cli --quiet
-```
 
 ---
 
-## 📊 Sample Output
+## 🧪 Testing
 
-```
-=== Infrastructure Health Summary ===
-CPU Usage: 81.8% [WARN]
-Memory Usage: 62.1% [OK]
-Disk Usage: 3.3% [OK]
-Log Issues: 0 total matches
-
-Health check complete.
-JSON report saved to:
-reports/health_report_2026-02-02_15-08-26.json
-```
+pytest tests/
 
 ---
 
-## 🚦 Exit Codes (CI/CD Friendly)
+## 📊 Exit Codes (CI/CD Friendly)
 
-| Code | Meaning |
-|-----:|--------|
-| 0 | All checks OK |
-| 1 | One or more warnings |
-| 2 | Error (missing or invalid data) |
+0 = All checks OK  
+1 = One or more warnings  
+2 = Error (missing or invalid data)
 
 ---
 
-## 🤖 Continuous Integration
+## 🔄 Continuous Integration
 
 This project includes GitHub Actions CI that runs on every push and pull request.
 
-The workflow installs dependencies and executes the CLI to ensure consistent behavior and prevent regressions.
+The workflow:
+- Installs dependencies
+- Runs tests
+- Executes the CLI
+
+This ensures consistent behavior and prevents regressions.
+
+---
+
+## 🧠 AI Log Analysis (Optional Feature)
+
+The ai_analyzer.py module is designed to extend log analysis capabilities.
+
+Potential use cases:
+- Detect anomaly patterns in logs
+- Identify recurring system issues
+- Enhance monitoring with intelligent insights
 
 ---
 
 ## 🎯 Why This Project Matters
-
-This project demonstrates:
 
 - Clean Python CLI design
 - Defensive programming
@@ -140,23 +156,18 @@ This project demonstrates:
 - Structured, machine-readable output
 - Maintainable, modular code organization
 
-Built as a portfolio project for junior Python, automation, and DevOps-oriented roles.
-
 ---
 
-## 🧩 Relevance to Internal Engineering & CAD Tooling
+## 🏗️ Relevance to Internal Engineering & CAD Tooling
 
-Although this project focuses on infrastructure health monitoring, it mirrors the structure and patterns of internal engineering tools commonly used in large organizations, including CAD/EDA support environments.
+Although focused on infrastructure health monitoring, this project mirrors patterns used in internal engineering tools at large companies.
 
-The tool demonstrates capabilities relevant to internal tooling teams:
-- CLI-based tool design for engineers
+- CLI-based tooling for engineers
 - Log parsing and pattern detection
-- Structured JSON report generation for downstream tooling
-- Deterministic exit codes for automation and flow control
-- CI/CD integration for continuous validation
-- Modular, maintainable code organization
-
-These same patterns are commonly applied to validating design flows, analyzing CAD tool outputs, and supporting engineering productivity at scale. The domain differs, but the tooling principles remain the same.
+- Structured JSON output for downstream systems
+- Deterministic exit codes for automation workflows
+- CI/CD validation pipelines
+- Modular, scalable architecture
 
 ---
 
