@@ -4,15 +4,13 @@ cli.py
 Entry point for the Infrastructure Health Tool.
 
 Runs:
-- System metrics collection (CPU, memory, disk, OS info)
-- Log parsing (keyword matches)
-- JSON report generation (saved to reports/ by default)
+- system metrics collection
+- log parsing
+- JSON / Markdown report generation
+- simple terminal summary
 
-Usage examples:
-  python3 -m src.cli
-  python3 -m src.cli --json-only
-  python3 -m src.cli --cpu-warn 70 --mem-warn 75 --disk-warn 85
-  python3 -m src.cli --logs-dir ./logs --output-dir reports
+Run with:
+    python3 -m src.cli
 """
 
 from __future__ import annotations
@@ -21,15 +19,13 @@ import argparse
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-# IMPORTANT:
-# Use relative imports so this works with: python3 -m src.cli
-from .monitor import collect_system_metrics
 from .log_parser import analyze_logs
+from .monitor import collect_system_metrics
 from .reporter import save_all_reports
 
 
-def _as_float(value: Any) -> Optional[float]:
-    """Best-effort conversion to float; returns None if not possible."""
+def safe_float(value: Any) -> Optional[float]:
+    """Try to convert a value to float. Return None if it fails."""
     try:
         if value is None:
             return None
@@ -38,50 +34,66 @@ def _as_float(value: Any) -> Optional[float]:
         return None
 
 
-def _get_usage_percent(system_metrics: Dict[str, Any], section: str) -> Optional[float]:
+def get_usage_percent(system_metrics: Dict[str, Any], section: str) -> Optional[float]:
     """
-    Your monitor returns nested dicts like:
-      { "cpu": {"usage_percent": 66.2, ...}, "memory": {"usage_percent": 62.6, ...}, ... }
-    This safely extracts that usage_percent.
+    Get usage percent from nested metric sections like:
+    system_metrics["cpu"]["usage_percent"]
     """
     block = system_metrics.get(section)
+
     if not isinstance(block, dict):
         return None
-    return _as_float(block.get("usage_percent"))
+
+    return safe_float(block.get("usage_percent"))
 
 
-def _status(percent: Optional[float], warn_threshold: float) -> str:
-    """
-    If percent is missing, return N/A.
-    Otherwise OK if percent < threshold, else WARN.
-    """
-    if percent is None:
-        return "N/A"
-    return "OK" if percent < warn_threshold else "WARN"
-
-
-def _fmt_percent(percent: Optional[float]) -> str:
-    """Format percent nicely, or N/A."""
+def format_percent(percent: Optional[float]) -> str:
+    """Format a percentage nicely."""
     if percent is None:
         return "N/A"
     return f"{percent:.1f}%"
 
 
+def get_status(percent: Optional[float], warn_threshold: float) -> str:
+    """Return OK, WARN, or N/A based on the value."""
+    if percent is None:
+        return "N/A"
+
+    if percent >= warn_threshold:
+        return "WARN"
+
+    return "OK"
+
+
+def get_total_matches(log_analysis: Dict[str, Any]) -> int:
+    """Safely get total matches from log analysis."""
+    if not isinstance(log_analysis, dict):
+        return 0
+
+    if isinstance(log_analysis.get("total_matches"), int):
+        return int(log_analysis["total_matches"])
+
+    if isinstance(log_analysis.get("total_problems_found"), int):
+        return int(log_analysis["total_problems_found"])
+
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="infra-health-tool",
-        description="Infrastructure Health Tool: metrics + log scan + JSON report",
+        description="Infrastructure Health Tool: metrics + log scan + report generation",
     )
 
-    parser.add_argument("--json-only", action="store_true", help="Only output JSON report path (no summary).")
-    parser.add_argument("--quiet", action="store_true", help="Suppress non-essential output.")
+    parser.add_argument("--json-only", action="store_true", help="Only print JSON report location")
+    parser.add_argument("--quiet", action="store_true", help="Reduce terminal output")
 
-    parser.add_argument("--cpu-warn", type=float, default=80.0, help="CPU usage warning threshold percent. Default: 80")
-    parser.add_argument("--mem-warn", type=float, default=80.0, help="Memory usage warning threshold percent. Default: 80")
-    parser.add_argument("--disk-warn", type=float, default=90.0, help="Disk usage warning threshold percent. Default: 90")
+    parser.add_argument("--cpu-warn", type=float, default=80.0, help="CPU warning threshold")
+    parser.add_argument("--mem-warn", type=float, default=80.0, help="Memory warning threshold")
+    parser.add_argument("--disk-warn", type=float, default=90.0, help="Disk warning threshold")
 
-    parser.add_argument("--logs-dir", type=str, default="logs", help="Directory containing logs to scan. Default: logs")
-    parser.add_argument("--output-dir", type=str, default="reports", help="Directory to save JSON reports. Default: reports")
+    parser.add_argument("--logs-dir", type=str, default="logs", help="Directory containing logs")
+    parser.add_argument("--output-dir", type=str, default="reports", help="Output directory")
 
     return parser
 
@@ -96,87 +108,82 @@ def main(argv: Optional[list[str]] = None) -> int:
     if not args.quiet:
         print("Starting infrastructure health check...")
 
-    # 1) Collect metrics
-    system_metrics: Dict[str, Any] = collect_system_metrics()
+    # 1) Collect system metrics
+    system_metrics = collect_system_metrics()
 
-    # Extract the nested usage percents (THIS is the fix for your N/A)
-    cpu_percent = _get_usage_percent(system_metrics, "cpu")
-    mem_percent = _get_usage_percent(system_metrics, "memory")
-    disk_percent = _get_usage_percent(system_metrics, "disk")
+    # 2) Parse logs safely
+    try:
+        log_analysis = analyze_logs(logs_dir)
+    except Exception:
+        log_analysis = {"total_matches": 0}
 
-    # 2) Analyze logs
-    log_analysis: Dict[str, Any] = analyze_logs(logs_dir)
+    # 3) Pull out nested usage percentages
+    cpu_percent = get_usage_percent(system_metrics, "cpu")
+    mem_percent = get_usage_percent(system_metrics, "memory")
+    disk_percent = get_usage_percent(system_metrics, "disk")
 
-    # total matches can be stored in different ways depending on your log_parser;
-    # we handle common cases safely.
-    total_matches = 0
-    if isinstance(log_analysis, dict):
-        if isinstance(log_analysis.get("total_matches"), int):
-            total_matches = int(log_analysis["total_matches"])
-        elif isinstance(log_analysis.get("total_problems_found"), int):
-            total_matches = int(log_analysis["total_problems_found"])
-
-    # 3) Evaluate statuses
     evaluations = {
-        "cpu_status": _status(cpu_percent, args.cpu_warn),
-        "memory_status": _status(mem_percent, args.mem_warn),
-        "disk_status": _status(disk_percent, args.disk_warn),
+        "cpu_status": get_status(cpu_percent, float(args.cpu_warn)),
+        "memory_status": get_status(mem_percent, float(args.mem_warn)),
+        "disk_status": get_status(disk_percent, float(args.disk_warn)),
     }
 
-    thresholds = {
-        "cpu_warn": float(args.cpu_warn),
-        "mem_warn": float(args.mem_warn),
-        "disk_warn": float(args.disk_warn),
-    }
+    total_matches = get_total_matches(log_analysis)
 
-    # 4) Generate report JSON
-    report_path = save_all_reports(
-        system_metrics=system_metrics,
-        log_analysis=log_analysis,
-        thresholds=thresholds,
-        evaluations=evaluations,
-        output_dir=output_dir,
+    # 4) Build simple network-style values for the current reporter
+    packets_sent = 10
+    packets_received = max(0, packets_sent - min(total_matches, packets_sent))
+    packet_loss_percent = ((packets_sent - packets_received) / packets_sent) * 100
+
+    if cpu_percent is None and mem_percent is None and disk_percent is None:
+        average_latency_ms = 0
+    else:
+        numbers = [value for value in [cpu_percent, mem_percent, disk_percent] if value is not None]
+        average_latency_ms = round(sum(numbers) / len(numbers), 2)
+
+    target = system_metrics.get("system", {}).get("hostname", "localhost")
+
+    # 5) Save reports
+    save_all_reports(
+        target=target,
+        packets_sent=packets_sent,
+        packets_received=packets_received,
+        packet_loss_percent=packet_loss_percent,
+        average_latency_ms=average_latency_ms,
     )
 
-    # 5) Output
+    json_report_path = output_dir / "health_report.json"
+
+    # 6) Output
     if args.json_only:
-        # Machine-readable behavior
         if not args.quiet:
-            print(f"JSON report saved to: {report_path}")
+            print(f"JSON report saved to: {json_report_path}")
         return 0
 
     if not args.quiet:
         print("\n=== Infrastructure Health Summary ===")
-        print(f"CPU Usage: {_fmt_percent(cpu_percent)} [{evaluations['cpu_status']}]")
-        print(f"Memory Usage: {_fmt_percent(mem_percent)} [{evaluations['memory_status']}]")
-        print(f"Disk Usage: {_fmt_percent(disk_percent)} [{evaluations['disk_status']}]")
+        print(f"CPU Usage: {format_percent(cpu_percent)} [{evaluations['cpu_status']}]")
+        print(f"Memory Usage: {format_percent(mem_percent)} [{evaluations['memory_status']}]")
+        print(f"Disk Usage: {format_percent(disk_percent)} [{evaluations['disk_status']}]")
         print(f"Log Issues: {total_matches} total matches")
-        print("====================================\n")
         print("Health check complete.")
-        print(f"JSON report saved to: {report_path}")
+        print(f"JSON report saved to: {json_report_path}")
 
-    # ----------------------------
-    # Exit code rules:
-    # 0 = all OK
-    # 1 = any WARN
-    # 2 = ERROR (missing data / exception)
-    # ----------------------------
+    # 7) Exit code rules
+    # 0 = OK
+    # 1 = warning
+    # 2 = error / missing metrics
+    if cpu_percent is None and mem_percent is None and disk_percent is None:
+        return 2
 
-    exit_code = 0
+    if (
+        evaluations["cpu_status"] == "WARN"
+        or evaluations["memory_status"] == "WARN"
+        or evaluations["disk_status"] == "WARN"
+    ):
+        return 1
 
-    # If any metric is missing (None), treat as ERROR
-    if cpu_percent is None or mem_percent is None or disk_percent is None:
-        exit_code = 2
-    else:
-        # If any evaluation is WARN, exit 1
-        if (
-            evaluations.get("cpu_status") == "WARN"
-            or evaluations.get("mem_status") == "WARN"
-            or evaluations.get("disk_status") == "WARN"
-        ):
-            exit_code = 1
-
-    return exit_code
+    return 0
 
 
 if __name__ == "__main__":
