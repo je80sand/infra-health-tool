@@ -54,7 +54,39 @@ reports/health_report_2026-02-02_15-08-26.json
 - Configurable warning thresholds
 - Machine-friendly exit codes (CI/CD ready)
 - Safe handling of missing or partial data
-- Quiet and JSON-only modes for automation
+- Quiet and JSON-only modes for automation---
+
+## 🤖 AI-Powered Diagnostics
+
+This tool includes a built-in AI-style analysis engine that converts raw system and network data into human-readable insights.
+
+Instead of just showing metrics, the tool explains:
+
+- System health status (excellent, good, unstable, critical)
+- Network issues such as packet loss and high latency
+- Likely causes (e.g., Wi-Fi instability, ISP issues, congestion)
+- Actionable recommendations for troubleshooting
+
+### Example AI Output
+
+Connectivity to google.com is unstable with an 80.0% success rate.  
+Moderate packet loss detected at 20%.  
+Average latency is elevated at 85 ms.
+
+Possible causes:
+- Wi-Fi signal issues or interference  
+- ISP instability  
+- Network congestion  
+
+Recommendations:
+- Run the test at different times  
+- Compare Wi-Fi vs Ethernet  
+- Reboot router and retest  
+
+---
+
+This feature demonstrates how structured data can be transformed into meaningful insights, simulating real-world AI-assisted diagnostics used in production systems.
+
 
 ---
 
