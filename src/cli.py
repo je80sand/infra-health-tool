@@ -25,7 +25,7 @@ from typing import Any, Dict, Optional
 # Use relative imports so this works with: python3 -m src.cli
 from .monitor import collect_system_metrics
 from .log_parser import analyze_logs
-from .reporter import generate_report
+from .reporter import save_all_reports
 
 
 def _as_float(value: Any) -> Optional[float]:
@@ -130,7 +130,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     }
 
     # 4) Generate report JSON
-    report_path = generate_report(
+    report_path = save_all_reports(
         system_metrics=system_metrics,
         log_analysis=log_analysis,
         thresholds=thresholds,
