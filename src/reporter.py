@@ -12,7 +12,7 @@ import json
 import os
 from datetime import datetime
 
-from ai_analyzer import generate_ai_analysis
+from src.ai_analyzer import generate_ai_analysis
 
 
 def ensure_reports_folder():
