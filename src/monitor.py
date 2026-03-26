@@ -69,3 +69,19 @@ def collect_system_metrics():
             "total_gb": disk_total_gb,
         },
     }
+
+if __name__ == "__main__":
+    from reporter import save_all_reports
+
+    metrics = collect_system_metrics()
+
+    report_data = save_all_reports(
+        target=metrics["system"]["hostname"],
+        packets_sent=10,
+        packets_received=8,
+        packet_loss_percent=20,
+        average_latency_ms=85,
+    )
+
+    print("Report created successfully.")
+    print(report_data)

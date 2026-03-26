@@ -9,4 +9,4 @@ venv/
 # Generated reports (created by running the CLI)
 reports/
 src/reports/
-*.json
+*.jsonreports/

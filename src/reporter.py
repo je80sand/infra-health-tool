@@ -1,118 +1,96 @@
 """
 reporter.py
 
-Responsible for saving reports to disk.
+Saves infrastructure health reports to disk.
 
-We support:
-- JSON report (main report)
-- Markdown report (human-friendly)
+Supports:
+- JSON report
+- Markdown report
 """
 
 import json
 import os
 from datetime import datetime
 
+from ai_analyzer import generate_ai_analysis
+
 
 def ensure_reports_folder():
-    """Make sure reports/ exists."""
     os.makedirs("reports", exist_ok=True)
 
 
-def save_json_report(full_report):
-    """
-    Save the full report to reports/ as JSON.
-    Returns the path to the saved file.
-    """
-    ensure_reports_folder()
-
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    filename = f"health_report_{timestamp}.json"
-    path = os.path.join("reports", filename)
-
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(full_report, f, indent=2)
-
-    return path
-
-
-def save_markdown_report(full_report):
-    """
-    Save a human-readable Markdown report to reports/.
-    Returns the path to the saved file.
-    """
-    ensure_reports_folder()
-
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    filename = f"health_report_{timestamp}.md"
-    path = os.path.join("reports", filename)
-
-    system = full_report["system_metrics"]
-    logs = full_report["log_analysis"]
-
-    cpu = system["cpu"]["usage_percent"]
-    mem = system["memory"]["usage_percent"]
-    disk = system["disk"]["usage_percent"]
-
-    lines = []
-    lines.append(f"# Infrastructure Health Report\n\n")
-    lines.append(f"**Generated:** {system['timestamp']}\n\n")
-
-    lines.append("## System\n")
-    lines.append(f"- OS: **{system['system']['os']}**\n")
-    lines.append(f"- Hostname: **{system['system']['hostname']}**\n\n")
-
-    lines.append("## Metrics\n")
-    lines.append(f"- CPU Usage: **{cpu}%**\n")
-    lines.append(f"- Memory Usage: **{mem}%**\n")
-    lines.append(f"- Disk Usage: **{disk}%**\n\n")
-
-    lines.append("## Log Analysis\n")
-    lines.append(f"- Logs folder: **{logs['logs_dir']}**\n")
-    lines.append(f"- Files scanned: **{logs['files_scanned']}**\n\n")
-
-    lines.append("### Problem Counts\n")
-    for key, value in logs["problem_counts"].items():
-        lines.append(f"- {key}: **{value}**\n")
-    lines.append("\n")
-
-    lines.append("### Example Matches (first few)\n")
-    for key, examples in logs.get("examples", {}).items():
-        if examples:
-            lines.append(f"**{key}**\n")
-            for ex in examples:
-                lines.append(f"- `{ex}`\n")
-            lines.append("\n")
-
-    with open(path, "w", encoding="utf-8") as f:
-        f.writelines(lines)
-
-    return path
-
-from datetime import datetime
-from pathlib import Path
-import json
-
-
-def generate_report(system_metrics, log_analysis, thresholds, evaluations, output_dir="reports"):
-    """
-    Build a full report dictionary, write it to a timestamped JSON file,
-    and return the saved file path as a string.
-    """
-    report = {
-        "timestamp": datetime.now().isoformat(timespec="seconds"),
-        "system_metrics": system_metrics,
-        "log_analysis": log_analysis,
-        "thresholds": thresholds,
-        "evaluations": evaluations,
+def build_report_data(target, packets_sent, packets_received, packet_loss_percent, average_latency_ms):
+    report_data = {
+        "target": target,
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "packets_sent": packets_sent,
+        "packets_received": packets_received,
+        "packet_loss_percent": packet_loss_percent,
+        "average_latency_ms": average_latency_ms,
     }
 
-    output_path = Path(output_dir)
-    output_path.mkdir(parents=True, exist_ok=True)
+    report_data["ai_analysis"] = generate_ai_analysis(report_data)
 
-    filename = f"health_report_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.json"
-    report_file = output_path / filename
+    return report_data
 
-    with report_file.open("w", encoding="utf-8") as f:
-        json.dump(report, f, indent=2, default=str)
 
-    return str(report_file)
+def save_json_report(report_data, filename="reports/health_report.json"):
+    ensure_reports_folder()
+
+    with open(filename, "w") as file:
+        json.dump(report_data, file, indent=4)
+
+    print(f"JSON report saved to {filename}")
+
+
+def save_markdown_report(report_data, filename="reports/health_report.md"):
+    ensure_reports_folder()
+
+    ai_analysis = report_data.get("ai_analysis", {})
+    findings = ai_analysis.get("findings", [])
+    causes = ai_analysis.get("possible_causes", [])
+    recommendations = ai_analysis.get("recommendations", [])
+
+    with open(filename, "w") as file:
+        file.write("# Infrastructure Health Report\n\n")
+        file.write(f"**Target:** {report_data['target']}\n\n")
+        file.write(f"**Timestamp:** {report_data['timestamp']}\n\n")
+        file.write(f"**Packets Sent:** {report_data['packets_sent']}\n\n")
+        file.write(f"**Packets Received:** {report_data['packets_received']}\n\n")
+        file.write(f"**Packet Loss:** {report_data['packet_loss_percent']}%\n\n")
+        file.write(f"**Average Latency:** {report_data['average_latency_ms']} ms\n\n")
+
+        file.write("## AI Summary\n\n")
+        file.write(f"{ai_analysis.get('summary', 'No AI summary available.')}\n\n")
+
+        file.write("## Findings\n\n")
+        for item in findings:
+            file.write(f"- {item}\n")
+        file.write("\n")
+
+        file.write("## Possible Causes\n\n")
+        for item in causes:
+            file.write(f"- {item}\n")
+        file.write("\n")
+
+        file.write("## Recommendations\n\n")
+        for item in recommendations:
+            file.write(f"- {item}\n")
+        file.write("\n")
+
+    print(f"Markdown report saved to {filename}")
+
+
+def save_all_reports(target, packets_sent, packets_received, packet_loss_percent, average_latency_ms):
+    report_data = build_report_data(
+        target,
+        packets_sent,
+        packets_received,
+        packet_loss_percent,
+        average_latency_ms,
+    )
+
+    save_json_report(report_data)
+    save_markdown_report(report_data)
+
+    return report_data
